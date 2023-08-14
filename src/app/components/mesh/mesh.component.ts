@@ -15,17 +15,16 @@ export class MeshComponent implements OnInit, OnDestroy {
     #viewProjMatrix = mat4.create();
     #modelMatrix = mat4.create();
     #requestFrame: any;
+    #vertexCount = 0;
 
     get vShaderSource(): string {
         return `
             attribute vec4 a_Position;
-            attribute vec2 a_TexCoord;
-            varying vec2 v_TexCoord;
             uniform mat4 u_mvpMatrix;
 
             void main() {
               gl_Position = u_mvpMatrix * a_Position;
-              v_TexCoord = a_TexCoord;
+              gl_PointSize = 4.0;
             }
         `;
     }
@@ -35,11 +34,10 @@ export class MeshComponent implements OnInit, OnDestroy {
             #ifdef GL_ES
             precision mediump float;
             #endif
-            uniform sampler2D u_Sampler;
-            varying vec2 v_TexCoord;
+           
 
             void main() {
-                gl_FragColor = texture2D(u_Sampler, v_TexCoord);
+                gl_FragColor = vec4(1.0, 0.1, 0.2, 1.0);
             }
         `;
     }
@@ -54,7 +52,7 @@ export class MeshComponent implements OnInit, OnDestroy {
                 // Initialize shaders
                 initShaders(this.#gl, this.vShaderSource, this.fShaderSource)
                 this.initVertexBuffers(this.#gl);
-                this.initTextures(this.#gl);
+                // this.initTextures(this.#gl);
 
                 // Set the clear color and enable the depth test
                 this.#gl.clearColor(0, 0, 0, 1);
@@ -67,8 +65,11 @@ export class MeshComponent implements OnInit, OnDestroy {
 
                 // Calculate the view projection matrix
                 mat4.ortho(viewProjMatrix, -1, 1, -1, 1, 1, 1000);
-                mat4.lookAt(viewProjMatrix, vec3.fromValues(0, 0, 10), vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0));
+                mat4.lookAt(viewProjMatrix, vec3.fromValues(0, 0, 0.1), vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0));
 
+                mat4.copy(this.#viewProjMatrix, viewProjMatrix);
+                console.log(this.#viewProjMatrix);
+        
                 this.#requestFrame = requestAnimationFrame(this.render.bind(this));
             }
         }
@@ -79,41 +80,60 @@ export class MeshComponent implements OnInit, OnDestroy {
     }
 
     private initVertexBuffers(gl: any): number {
-        const vertexs = [
-            -1.0, 1.0, 0.0, 0.0, 1.0,
-            -1.0, -1.0, 0.0, 0.0, 0.0,
-            1.0, 1.0, 0.0, 1.0, 1.0,
-            1.0, -1.0, 0.0, 1.0, 0.0,
-        ];
-        const verticesColors = new Float32Array(vertexs);
+        const sphereVertexs = [];
+        const delta = Math.PI / 32;
+        const r = 0.5;
+        const startX = -0.5;
+        const startY = -0.5;
+        
+        for (let i = 0.0; i < 1.0; i += 0.05) {
+            const cr = Math.sqrt(r * r - (r - Math.abs(i)) * (r - Math.abs(i)));
+
+            for (let t = 0.0; t < Math.PI * 2; t += delta) {
+                sphereVertexs.push(cr * Math.sin(t), cr * Math.cos(t), i, 1.0);
+            }
+
+        }
+
+
+        const textureVetexs = new Int8Array([
+            0xff, 0xcc, 0xff, 0xcc, 0xff, 0xcc, 0xff, 0xcc,
+            0xff, 0xcc, 0xff, 0xcc, 0xff, 0xcc, 0xff, 0xcc,
+            0xff, 0xcc, 0xff, 0xcc, 0xff, 0xcc, 0xff, 0xcc,
+            0xff, 0xcc, 0xff, 0xcc, 0xff, 0xcc, 0xff, 0xcc,
+            0xff, 0xcc, 0xff, 0xcc, 0xff, 0xcc, 0xff, 0xcc,
+            0xff, 0xcc, 0xff, 0xcc, 0xff, 0xcc, 0xff, 0xcc,
+            0xff, 0xcc, 0xff, 0xcc, 0xff, 0xcc, 0xff, 0xcc,
+            0xff, 0xcc, 0xff, 0xcc, 0xff, 0xcc, 0xff, 0xcc,
+        ]);
+
+        const verticesColors = new Float32Array(sphereVertexs);
         const vertexColorbuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorbuffer);
         gl.bufferData(gl.ARRAY_BUFFER, verticesColors, gl.STATIC_DRAW);
         const FSIZE = verticesColors.BYTES_PER_ELEMENT;
         const a_Position = gl.getAttribLocation(gl.program, 'a_Position');
-        gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, FSIZE * 5, 0);
+        gl.vertexAttribPointer(a_Position, 4, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(a_Position);
-        const a_TexCoord = gl.getAttribLocation(gl.program, 'a_TexCoord');
-        gl.vertexAttribPointer(a_TexCoord, 2, gl.FLOAT, false, FSIZE * 5, FSIZE * 3);
-        gl.enableVertexAttribArray(a_TexCoord);
+        // const a_TexCoord = gl.getAttribLocation(gl.program, 'a_TexCoord');
+        // gl.vertexAttribPointer(a_TexCoord, 2, gl.FLOAT, false, FSIZE * 5, FSIZE * 3);
+        // gl.enableVertexAttribArray(a_TexCoord);
 
-        return  4;
+        this.#vertexCount = sphereVertexs.length;
+        return  sphereVertexs.length;
     }
 
     private drawScene(gl: any, deltaTime: number): void {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         this.#modelMatrix = mat4.create();
         const mvpMatrix = mat4.create();
-        mat4.copy(this.#modelMatrix, this.#viewProjMatrix);
-        mat4.fromScaling(this.#viewProjMatrix, vec3.fromValues(1, 1, 1));
         this.#cubeRotation += deltaTime;
         this.#cubeRotation += 1;
-        mat4.fromRotation(this.#modelMatrix, degree2Radian(this.#cubeRotation), vec3.fromValues(1, 1, 1));
+        mat4.fromRotation(this.#modelMatrix, degree2Radian(this.#cubeRotation), vec3.fromValues(0, 1, 0));
         mat4.translate(this.#modelMatrix, this.#modelMatrix, vec3.fromValues(0, 0, 0));
         mat4.mul(mvpMatrix, this.#viewProjMatrix, this.#modelMatrix);
         gl.uniformMatrix4fv(this.#u_mvpMatrix, false, mvpMatrix);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-        console.log(deltaTime);
+        gl.drawArrays(gl.POINTS, 0, this.#vertexCount / 4);
     }
 
     private render(now: number): void {
@@ -144,7 +164,7 @@ export class MeshComponent implements OnInit, OnDestroy {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-        // gl.uniform1i(u_Sampler, 0);
+        gl.uniform1i(u_Sampler, 0);
         this.drawScene(gl, 0);
     }
 }

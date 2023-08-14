@@ -104,7 +104,7 @@ export class Demo1Component implements OnInit {
         const geometry5 = new BufferGeometry(); //声明一个几何体对象Geometry
         const p1 = new Vector3(0, 0, 0); //顶点1坐标
         const p2 = new Vector3(10, 10, 10); //顶点2坐标
-        const mertial5 = new LineBasicMaterial({color: 0xff5500});
+        const mertial5 = new LineBasicMaterial({color: 0x00ff00});
         // 三维直线LineCurve3
         const LineCurve = new LineCurve3(p1, p2);
         const pointArr = LineCurve.getPoints(5);
