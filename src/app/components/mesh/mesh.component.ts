@@ -27,17 +27,17 @@ export class MeshComponent implements OnInit, OnDestroy {
             attribute vec4 a_Position;
             attribute vec2 a_TexCoord;
             attribute vec4 a_Normal;
-            
+
             uniform mat4 u_mvpMatrix;
             uniform mat4 u_NormalMatrix;
 
             varying vec4 v_Color;
             varying vec2 v_TexCoord;
-            
-            
+
+
             void main() {
                 gl_Position = u_mvpMatrix * a_Position;
-                gl_PointSize = 2.0;
+                gl_PointSize = 4.0;
                 v_TexCoord = a_TexCoord;
 
                 vec3 lightDirection = normalize(vec3(0.2, 0.9, 0.8));
@@ -95,7 +95,7 @@ export class MeshComponent implements OnInit, OnDestroy {
                 mat4.lookAt(viewProjMatrix, vec3.fromValues(0, 0, 0.1), vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0));
 
                 mat4.copy(this.#viewProjMatrix, viewProjMatrix);
-        
+
                 this.#requestFrame = requestAnimationFrame(this.render.bind(this));
             }
         }
@@ -109,7 +109,7 @@ export class MeshComponent implements OnInit, OnDestroy {
         const sphereVertexs = [];
         const delta = Math.PI / 32;
         const r = 0.5;
-        
+
         for (let i = -0.5; i < 0.5; i += 0.05) {
             const cr = Math.sqrt(r * r - (r - Math.abs(i)) * (r - Math.abs(i)));
 
@@ -129,7 +129,7 @@ export class MeshComponent implements OnInit, OnDestroy {
         const a_Position = gl.getAttribLocation(gl.program, 'a_Position');
         gl.vertexAttribPointer(a_Position, 4, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(a_Position);
-    
+
 
         this.#vertexCount = sphereVertexs.length;
         return  sphereVertexs.length;
@@ -138,65 +138,121 @@ export class MeshComponent implements OnInit, OnDestroy {
     private initPlaneVertexBuffers(gl: any): number {
         const planeVertexs = [];
         const textureVetexs = [];
-        const subdivisionsX = 4; // row points length
-        const subdivisionsY = 4; // column points length
-        const interval = 1.0 / subdivisionsX;        
-        
+        const subdivisionsX = 32; // row interval
+        const subdivisionsY = 32; // column interval
+        const interval = 1.0 / subdivisionsX; // n point has n - 1 interval
+        const matMN = new matM_N(subdivisionsX + 1, subdivisionsY + 1);
+        console.log('matMN', matMN);
+
         // Math.random()
-        for (let i = -0.5; i < 0.5; i += interval) {
-            for (let t = -0.5; t < 0.5; t += interval) {
+        for (let i = -0.5; i <= 0.5; i += interval) {
+            for (let t = -0.5; t <= 0.5; t += interval) {
                 planeVertexs.push(i, t, Math.random(), 1.0);
             }
         }
 
         const verticesColors = new Float32Array(planeVertexs);
+        const FSIZE = verticesColors.BYTES_PER_ELEMENT;
         const vertexColorbuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorbuffer);
         gl.bufferData(gl.ARRAY_BUFFER, verticesColors, gl.STATIC_DRAW);
-        const FSIZE = verticesColors.BYTES_PER_ELEMENT;
         const a_Position = gl.getAttribLocation(gl.program, 'a_Position');
         gl.vertexAttribPointer(a_Position, 4, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(a_Position);
         console.log('verticesColors', verticesColors);
 
         // set vertex indices
-    
-        const mat5_5 = new matM_N(subdivisionsX, subdivisionsY);
-        console.log('mat5_5', mat5_5);
+        // m interval has m + 1 points
+
 
         const indices = [];
-        for (let i = 0; i < subdivisionsX - 1; i++) {
-            for (let j = 0; j < subdivisionsY - 1; j++) {
-                const lt = mat5_5.value[i][j], rt = mat5_5.value[i][j + 1], lb = mat5_5.value[i + 1][j], rb = mat5_5.value[i + 1][j + 1]; 
-                indices.push(lt, lb, rt, rt, lb, rb);                
+        for (let i = 0; i <= subdivisionsX; i++) {
+            for (let j = 0; j <= subdivisionsY; j++) {
+                if (matMN.value[i + 1] && matMN.value[j + 1]) {
+                    const lt = matMN.value[i][j], rt = matMN.value[i][j + 1], lb = matMN.value[i + 1][j], rb = matMN.value[i + 1][j + 1];
+                    indices.push(lt, rb, rt, lt, lb, rb);
+                }
             }
         }
+
         console.log('indices', indices);
+        const indicesTypeArray = new Uint16Array(indices);
+        // console.log('indicesTypeArray', indicesTypeArray);
         const indexBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint8Array(indices), gl.STATIC_DRAW);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indicesTypeArray, gl.STATIC_DRAW);
         this.#indicesCount = indices.length;
-
-
         // set texCoord
-        for (let i = 0; i < subdivisionsX; i++) {
-            for (let j = 0; j < subdivisionsY; j++) {
+        for (let i = 0; i <= subdivisionsX; i++) {
+            for (let j = 0; j <= subdivisionsY; j++) {
                 textureVetexs.push(1.0 / subdivisionsX * i, 1.0 / subdivisionsY * j);
             }
         }
 
-        console.log('texCoord', textureVetexs);
-        //[0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0]
+        // console.log('texCoord', textureVetexs);
         const textureBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, textureBuffer);
         // console.log(textureVetexs);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureVetexs), gl.STATIC_DRAW);
-        const a_TexCoord = gl.getAttribLocation(gl.program, 'a_TexCoord'); 
+        textureBuffer.BYTES_PER_ELEMENT;
+        const a_TexCoord = gl.getAttribLocation(gl.program, 'a_TexCoord');
         gl.vertexAttribPointer(a_TexCoord, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(a_TexCoord);
 
         this.#planeVertexCount = planeVertexs.length;
         return planeVertexs.length;
+    }
+
+    private render(): void {
+        this.drawScene(this.#gl);
+        this.#requestFrame = requestAnimationFrame(this.render.bind(this));
+    }
+
+    private initTextures(gl: any): void {
+        const u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler');
+        const textureVetexs = new Uint8ClampedArray([
+            0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
+            0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
+            0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
+            0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
+            0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
+            0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
+            0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
+            0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
+        ]);
+
+
+        const texture = gl.createTexture();
+        this.loadTexture(gl, texture, u_Sampler, textureVetexs);
+    }
+
+    private initTextures2(gl: any): void {
+        const u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler');
+
+        const image = new Image();
+        const texture = gl.createTexture();
+        image.addEventListener('load', () => {
+            this.loadTexture(gl, texture, u_Sampler, image);
+        });
+        image.src = 'assets/images/03.jpg';
+    }
+
+    private loadTexture(gl: any, texture: any, u_Sampler: any, image: any): void {
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        // NEAREST 不进行加权平均。 LINEAR 与邻近四个像素加权平均。
+        // S,T   REPEAT, MIRRORED_REPEAT, CLAMP_TO_EDGE
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        // gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 8, 8, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, image);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+        // gl.generateMipmap(gl.TEXTURE_2D);
+        gl.uniform1i(u_Sampler, 0);
+        this.drawScene(gl);
     }
 
     private drawScene(gl: any): void {
@@ -215,73 +271,11 @@ export class MeshComponent implements OnInit, OnDestroy {
 
         gl.uniformMatrix4fv(this.#u_mvpMatrix, false, mvpMatrix);
         // draw objects
-        gl.drawArrays(gl.POINTS, 0, this.#indicesCount);
-        // gl.drawArrays(gl.LINE_STRIP, 0, this.#indicesCount);
+        // gl.drawArrays(gl.LINE_STRIP, 0, this.#indicesCount - 2);
+        // gl.drawElements(gl.POINTS, this.#indicesCount, gl.UNSIGNED_SHORT , 0);
+        // gl.drawElements(gl.LINES, this.#indicesCount, gl.UNSIGNED_SHORT, 0);
         // console.log('indicecs count', this.#indicesCount);
-        gl.drawElements(gl.TRIANGLES, this.#indicesCount, gl.UNSIGNED_BYTE, 0);
-    }
-
-    private render(now: number): void {
-        now *= 0.005;
-        const deltaTime = now - this.#then;
-        this.#then = now;
-        this.drawScene(this.#gl);
-        this.#requestFrame = requestAnimationFrame(this.render.bind(this));
-    }
-
-    // 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
-    // 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
-    // 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
-    // 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
-    // 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
-    // 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
-    // 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
-    // 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
-    private initTextures(gl: any): void {
-        const u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler');
-        const textureVetexs = new Uint8ClampedArray([
-            0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
-            0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
-            0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
-            0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
-            0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
-            0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
-            0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
-            0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
-        ]);
-       
-
-        const texture = gl.createTexture();
-        this.loadTexture(gl, texture, u_Sampler, textureVetexs);
-    }
-
-    private initTextures2(gl: any): void {
-        const u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler');
-
-        const image = new Image();
-        const texture = gl.createTexture();
-        image.addEventListener('load', () => {
-            this.loadTexture(gl, texture, u_Sampler, image);
-        });
-        image.src = 'assets/images/03.jpg';
-    }
-
-    private loadTexture(gl: any, texture: any, u_Sampler: any, image: any): void {
-        // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        // NEAREST 不进行加权平均。 LINEAR 与邻近四个像素加权平均。
-        // S,T   REPEAT, MIRRORED_REPEAT, CLAMP_TO_EDGE
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        // gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 8, 8, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, image);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-
-        // gl.generateMipmap(gl.TEXTURE_2D);
-        gl.uniform1i(u_Sampler, 0);
-        this.drawScene(gl);
+        gl.drawElements(gl.TRIANGLES, this.#indicesCount, gl.UNSIGNED_SHORT, 0);
     }
 }
 
