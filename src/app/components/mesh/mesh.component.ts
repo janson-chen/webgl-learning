@@ -10,7 +10,6 @@ import { matM_N } from "src/app/lib/math";
 })
 export class MeshComponent implements OnInit, OnDestroy {
     #cubeRotation = 0;
-    #then = 0;
     #gl: any;
     #u_mvpMatrix = null;
     #viewProjMatrix = mat4.create();
@@ -24,10 +23,14 @@ export class MeshComponent implements OnInit, OnDestroy {
 
     get vShaderSource(): string {
         return `
+            #ifdef GL_ES
+            precision mediump float;
+            #endif
+
             attribute vec4 a_Position;
             attribute vec2 a_TexCoord;
             attribute vec4 a_Normal;
-
+            uniform sampler2D u_Sampler;
             uniform mat4 u_mvpMatrix;
             uniform mat4 u_NormalMatrix;
 
@@ -36,8 +39,11 @@ export class MeshComponent implements OnInit, OnDestroy {
 
 
             void main() {
-                gl_Position = u_mvpMatrix * a_Position;
-                gl_PointSize = 4.0;
+                vec4 pColor = texture2D(u_Sampler, a_TexCoord);
+                float colorAsZ = (pColor.r + pColor.b + pColor.g) / 3.0;
+                gl_Position = u_mvpMatrix * vec4(a_Position.x, a_Position.y, colorAsZ, a_Position.w);
+
+                gl_PointSize = 1.0; // only effect in drawing points
                 v_TexCoord = a_TexCoord;
 
                 vec3 lightDirection = normalize(vec3(0.2, 0.9, 0.8));
@@ -92,7 +98,7 @@ export class MeshComponent implements OnInit, OnDestroy {
 
                 // Calculate the view projection matrix
                 mat4.ortho(viewProjMatrix, -1, 1, -1, 1, 1, 1000);
-                mat4.lookAt(viewProjMatrix, vec3.fromValues(0, 0, 0.1), vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0));
+                mat4.lookAt(viewProjMatrix, vec3.fromValues(0, 0, -0.1), vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0));
 
                 mat4.copy(this.#viewProjMatrix, viewProjMatrix);
 
@@ -138,8 +144,8 @@ export class MeshComponent implements OnInit, OnDestroy {
     private initPlaneVertexBuffers(gl: any): number {
         const planeVertexs = [];
         const textureVetexs = [];
-        const subdivisionsX = 32; // row interval
-        const subdivisionsY = 32; // column interval
+        const subdivisionsX = 128; // row interval
+        const subdivisionsY = 128; // column interval
         const interval = 1.0 / subdivisionsX; // n point has n - 1 interval
         const matMN = new matM_N(subdivisionsX + 1, subdivisionsY + 1);
         console.log('matMN', matMN);
@@ -147,12 +153,11 @@ export class MeshComponent implements OnInit, OnDestroy {
         // Math.random()
         for (let i = -0.5; i <= 0.5; i += interval) {
             for (let t = -0.5; t <= 0.5; t += interval) {
-                planeVertexs.push(i, t, Math.random(), 1.0);
+                planeVertexs.push(i, t, 0, 1.0);
             }
         }
 
         const verticesColors = new Float32Array(planeVertexs);
-        const FSIZE = verticesColors.BYTES_PER_ELEMENT;
         const vertexColorbuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorbuffer);
         gl.bufferData(gl.ARRAY_BUFFER, verticesColors, gl.STATIC_DRAW);
@@ -162,9 +167,6 @@ export class MeshComponent implements OnInit, OnDestroy {
         console.log('verticesColors', verticesColors);
 
         // set vertex indices
-        // m interval has m + 1 points
-
-
         const indices = [];
         for (let i = 0; i <= subdivisionsX; i++) {
             for (let j = 0; j <= subdivisionsY; j++) {
@@ -234,7 +236,10 @@ export class MeshComponent implements OnInit, OnDestroy {
         image.addEventListener('load', () => {
             this.loadTexture(gl, texture, u_Sampler, image);
         });
+        // image.src = 'assets/images/04.jpg';
+        // image.src = 'assets/images/01.jpg';
         image.src = 'assets/images/03.jpg';
+        // image.src = 'assets/images/clouds.jpeg';
     }
 
     private loadTexture(gl: any, texture: any, u_Sampler: any, image: any): void {
@@ -260,7 +265,7 @@ export class MeshComponent implements OnInit, OnDestroy {
         this.#modelMatrix = mat4.create();
         const mvpMatrix = mat4.create();
         this.#cubeRotation += 0.3;
-        // mat4.fromRotation(this.#modelMatrix, degree2Radian(this.#cubeRotation), vec3.fromValues(1, 1, 1));
+        mat4.fromRotation(this.#modelMatrix, degree2Radian(this.#cubeRotation), vec3.fromValues(1, 1, 1));
         mat4.translate(this.#modelMatrix, this.#modelMatrix, vec3.fromValues(0, 0, 0));
         mat4.mul(mvpMatrix, this.#viewProjMatrix, this.#modelMatrix);
 
