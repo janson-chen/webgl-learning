@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { initShaders } from 'src/app/core/gl-utils';
 
 @Component({
-    selector: 'app-mesh',
+    selector: 'app-mix',
     templateUrl: './image-merge.component.html',
     styleUrls: ['./image-merge.component.scss']
 })
@@ -46,11 +46,10 @@ export class ImageMergeComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        this.#glCanvas = document.querySelector<HTMLCanvasElement>('#webgl') as HTMLCanvasElement;
-        this.#player = document.querySelector<HTMLCanvasElement>('.interpolation') as HTMLCanvasElement;
+        this.#player = document.querySelector<HTMLCanvasElement>('#webgl') as HTMLCanvasElement;
 
-        if (this.#glCanvas) {
-            this.#gl = this.#glCanvas.getContext("webgl") as any;
+        if (this.#player) {
+            this.#gl = this.#player.getContext("webgl") as any;
             if (this.#gl) {
                 initShaders(this.#gl, this.vShaderSource, this.fShaderSource);
                 const vCount = this.initVertexBuffers(this.#gl);

@@ -61,7 +61,7 @@ export class SkyBoxComponent implements OnInit, OnDestroy {
             // 初始化着色器, 封装着色器对象
             initShaders(this.#gl, this.vShaderSource, this.fShaderSource);
             // 初始化缓冲区
-            const n =this.initVertexBuffers(this.#gl);
+            this.initVertexBuffers(this.#gl);
             // 获取uniform变量地址
             this.#positionLocation = this.#gl.getAttribLocation(this.#gl.program, 'a_position');
             this.#skyboxLocation = this.#gl.getUniformLocation(this.#gl.program, 'u_skybox');
@@ -74,7 +74,7 @@ export class SkyBoxComponent implements OnInit, OnDestroy {
             this.#requestFrame = requestAnimationFrame(this.drawScene.bind(this));
         }
     }
-    // 初始化缓冲区但并且分配着色器地址
+    // 初始化缓冲区并且分配着色器地址
     private initVertexBuffers(gl: any): number {
         const positions = new Float32Array([
             -1, -1,
@@ -144,7 +144,6 @@ export class SkyBoxComponent implements OnInit, OnDestroy {
                 gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
             });
         });
-        gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
         gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     }
 

@@ -6,8 +6,13 @@ import { RobotArmComponent } from './components/robot-arm/robot-arm.component';
 import { SkyBoxComponent } from './components/sky-box/sky-box.component';
 import { Demo1Component } from "./components/three/demo1/demo1.component";
 import { ImageMergeComponent } from "./components/image-merge/image-merge.component";
+import { GalleryComponent } from './components/gallery/gallery.component';
 
 const routes: Routes = [
+    {
+        path: 'gallery',
+        component: GalleryComponent
+    },
     {
         path: 'mesh',
         component: MeshComponent
