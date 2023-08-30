@@ -71,8 +71,6 @@ export class MeshComponent implements OnInit, OnDestroy {
 
     ngOnInit(): void {
         const canvas = document.querySelector<HTMLCanvasElement>('#webgl');
-
-        // Get the rendering context for WebGL
         if (canvas) {
             this.#gl = canvas.getContext("webgl") as any;
             if (this.#gl) {
@@ -81,8 +79,6 @@ export class MeshComponent implements OnInit, OnDestroy {
                 this.initPlaneVertexBuffers(this.#gl);
 
                 // textures
-                // this.initTextures(this.#gl);
-
                 this.initTextures2(this.#gl);
                 // Set the clear color and enable the depth test
                 this.#gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -179,7 +175,6 @@ export class MeshComponent implements OnInit, OnDestroy {
         const indices: number[] = [];
         const matMN = new matM_N(subdivisionsX + 1, subdivisionsY + 1);
         const matMNRound = new matM_N(2, subdivisionsX + 1);
-        // console.log('matMNRound', matMNRound);
 
         let indexStart = 0;
         //front indices
@@ -289,10 +284,8 @@ export class MeshComponent implements OnInit, OnDestroy {
             }
         }
 
-        // console.log('texCoord', textureVetexs);
         const textureBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, textureBuffer);
-        // console.log(textureVetexs);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureVetexs), gl.STATIC_DRAW);
         textureBuffer.BYTES_PER_ELEMENT;
         const a_TexCoord = gl.getAttribLocation(gl.program, 'a_TexCoord');
@@ -305,24 +298,6 @@ export class MeshComponent implements OnInit, OnDestroy {
     private render(): void {
         this.drawScene(this.#gl);
         this.#requestFrame = requestAnimationFrame(this.render.bind(this));
-    }
-
-    private initTextures(gl: any): void {
-        const u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler');
-        const textureVetexs = new Uint8ClampedArray([
-            0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
-            0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
-            0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
-            0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
-            0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
-            0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
-            0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
-            0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
-        ]);
-
-
-        const texture = gl.createTexture();
-        this.loadTexture(gl, texture, u_Sampler, textureVetexs);
     }
 
     private initTextures2(gl: any): void {
