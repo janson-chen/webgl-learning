@@ -115,6 +115,7 @@ export class MeshComponent implements OnInit, OnDestroy {
         const planeBackVertexs = [];
         const planeLeftVertexs = [];
         const planeRightVertexs = [];
+        const planeBottomVertexs = [];
         const textureVetexs = [];
         const subdivisionsX = 128; // row interval
         const subdivisionsY = 128; // column interval
@@ -153,10 +154,17 @@ export class MeshComponent implements OnInit, OnDestroy {
             planeRightVertexs.push(0.5, i, 0.5, 1.0);
             planeRightVertexs.push(0.5, i, 0.0, 1.0);
         }
-        
-        // planeVertexs.push(...planeFrontVertexs, ...planeRightVertexs, ...planeBackVertexs, ...planeLeftVertexs, ...planeUpVertexs);
 
+        // bottom face
+        for (let i = -0.5; i <= 0.5; i += 1.0) {
+            for (let t = -0.5; t <= 0.5; t += 1.0) {
+                planeBottomVertexs.push(i, t, 0.0, 1.0);
+            }
+        }
+
+        
         planeVertexs.push(...planeUpVertexs);
+        planeVertexs.push(...planeBottomVertexs);
 
         const verticesColors = new Float32Array(planeVertexs);
         const vertexColorbuffer = gl.createBuffer();
@@ -170,17 +178,17 @@ export class MeshComponent implements OnInit, OnDestroy {
         // set vertex indices
         const indices: number[] = [];
         const matMN = new matM_N(subdivisionsX + 1, subdivisionsY + 1);
-        const matMNFront = new matM_N(2, subdivisionsX + 1);
-        // console.log('matMNFront', matMNFront);
+        const matMNRound = new matM_N(2, subdivisionsX + 1);
+        // console.log('matMNRound', matMNRound);
 
         let indexStart = 0;
         //front indices
         const frontIndices = [];
         for (let i = 0; i <= 2; i++) {
-            if (matMNFront.value[i + 1]) {
+            if (matMNRound.value[i + 1]) {
                 for (let j = 0; j <= subdivisionsX; j++) {
-                    if (matMNFront.value[i][j + 1]) {
-                        const lt = matMNFront.value[i][j] + indexStart, rt = matMNFront.value[i][j + 1] + indexStart, lb = matMNFront.value[i + 1][j] + indexStart, rb = matMNFront.value[i + 1][j + 1] + indexStart;
+                    if (matMNRound.value[i][j + 1]) {
+                        const lt = matMNRound.value[i][j] + indexStart, rt = matMNRound.value[i][j + 1] + indexStart, lb = matMNRound.value[i + 1][j] + indexStart, rb = matMNRound.value[i + 1][j + 1] + indexStart;
                         frontIndices.push(lt, rb, rt, lt, lb, rb);
                     }
                 }
@@ -192,10 +200,10 @@ export class MeshComponent implements OnInit, OnDestroy {
         // vertex count should divide the dimension of one point.
         indexStart = planeFrontVertexs.length / 4;
         for (let i = 0; i <= 2; i++) {
-            if (matMNFront.value[i + 1]) {
+            if (matMNRound.value[i + 1]) {
                 for (let j = 0; j <= subdivisionsX; j++) {
-                    if (matMNFront.value[i][j + 1]) {
-                        const lt = matMNFront.value[i][j] + indexStart, rt = matMNFront.value[i][j + 1] + indexStart, lb = matMNFront.value[i + 1][j] + indexStart, rb = matMNFront.value[i + 1][j + 1] + indexStart;
+                    if (matMNRound.value[i][j + 1]) {
+                        const lt = matMNRound.value[i][j] + indexStart, rt = matMNRound.value[i][j + 1] + indexStart, lb = matMNRound.value[i + 1][j] + indexStart, rb = matMNRound.value[i + 1][j + 1] + indexStart;
                         rightIndices.push(lt, rb, rt, lt, lb, rb);
                     }
                 }
@@ -208,10 +216,10 @@ export class MeshComponent implements OnInit, OnDestroy {
         // vertex count should divide the dimension of one point.
         indexStart = planeFrontVertexs.length / 4 + planeRightVertexs.length / 4;
         for (let i = 0; i <= 2; i++) {
-            if (matMNFront.value[i + 1]) {
+            if (matMNRound.value[i + 1]) {
                 for (let j = 0; j <= subdivisionsX; j++) {
-                    if (matMNFront.value[i][j + 1]) {
-                        const lt = matMNFront.value[i][j] + indexStart, rt = matMNFront.value[i][j + 1] + indexStart, lb = matMNFront.value[i + 1][j] + indexStart, rb = matMNFront.value[i + 1][j + 1] + indexStart;
+                    if (matMNRound.value[i][j + 1]) {
+                        const lt = matMNRound.value[i][j] + indexStart, rt = matMNRound.value[i][j + 1] + indexStart, lb = matMNRound.value[i + 1][j] + indexStart, rb = matMNRound.value[i + 1][j + 1] + indexStart;
                         backIndices.push(lt, rb, rt, lt, lb, rb);
                     }
                 }
@@ -223,20 +231,18 @@ export class MeshComponent implements OnInit, OnDestroy {
         // vertex count should divide the dimension of one point.
         indexStart = planeFrontVertexs.length / 4 + planeRightVertexs.length / 4 + planeBackVertexs.length / 4;
         for (let i = 0; i <= 2; i++) {
-            if (matMNFront.value[i + 1]) {
+            if (matMNRound.value[i + 1]) {
                 for (let j = 0; j <= subdivisionsX; j++) {
-                    if (matMNFront.value[i][j + 1]) {
-                        const lt = matMNFront.value[i][j] + indexStart, rt = matMNFront.value[i][j + 1] + indexStart, lb = matMNFront.value[i + 1][j] + indexStart, rb = matMNFront.value[i + 1][j + 1] + indexStart;
+                    if (matMNRound.value[i][j + 1]) {
+                        const lt = matMNRound.value[i][j] + indexStart, rt = matMNRound.value[i][j + 1] + indexStart, lb = matMNRound.value[i + 1][j] + indexStart, rb = matMNRound.value[i + 1][j + 1] + indexStart;
                         leftIndices.push(lt, rb, rt, lt, lb, rb);
                     }
                 }
             }
         }
 
-
-        // indices.push(...frontIndices, ...rightIndices, ...backIndices, ...leftIndices);
+        // up indices
         indexStart = indices.length;
-
         for (let i = 0; i <= subdivisionsX; i++) {
             if (matMN.value[i + 1]) {
                 for (let j = 0; j <= subdivisionsY; j++) {
@@ -246,7 +252,20 @@ export class MeshComponent implements OnInit, OnDestroy {
                     }
                 }
             }
-            
+        }
+
+        // bottom indices
+        const matMNBottom = new matM_N(2, 2);
+        indexStart = planeUpVertexs.length / 4;
+
+        for (let i = 0; i <= 2; i += 1.0) {
+            for (let j = 0; j <= 2; j += 1.0) {
+                if (matMNBottom.value[i + 1] && matMNBottom.value[i + 1][j + 1]) {
+                    const lt = matMNBottom.value[i][j] + indexStart, rt = matMNBottom.value[i][j + 1] + indexStart, lb = matMNBottom.value[i + 1][j] + indexStart, rb = matMNBottom.value[i + 1][j + 1] + indexStart;
+                    indices.push(lt, rb, rt, lt, lb, rb);
+                    console.log(lt, rb, rt, lt, lb, rb);
+                }
+            }
         }
 
         const indicesTypeArray = new Uint16Array(indices);
@@ -256,10 +275,17 @@ export class MeshComponent implements OnInit, OnDestroy {
         this.#indicesCount = indices.length;
 
 
-        // set texCoord
+        // set up and round texCoord
         for (let i = 0; i <= subdivisionsX; i++) {
             for (let j = 0; j <= subdivisionsY; j++) {
                 textureVetexs.push(1.0 / subdivisionsX * i, 1.0 / subdivisionsY * j);
+            }
+        }
+
+        // set bottom texCoord
+        for (let i = 0; i <= 1.0; i++) {
+            for (let j = 0; j <= 1.0; j++) {
+                textureVetexs.push(i, j);
             }
         }
 
